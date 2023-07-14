@@ -12,7 +12,7 @@ class Flight:
         #图像信息
         self.imgRsts = []
         #飞机当前状态
-        self.state = ""
+        self.state = "powerDown"
 
         #########################-added-#########################
         # NOTE:添加上了在跟哪辆车和在哪个位置
