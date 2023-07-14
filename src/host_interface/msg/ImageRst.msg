@@ -1,4 +1,5 @@
 int8 num
-int32 x
-int32 y
-int32 size
+float32 x
+float32 y
+float32 size
+int8 global_car_id

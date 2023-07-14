@@ -3,6 +3,9 @@ from host_interface.msg import FlightInfo
 from host_interface.msg import FlightTarget
 from host_interface.msg import ImageRst
 
+from host.car import Car
+
+
 class Flight:
     def __init__(self,id):
         #飞行姿态、速度、位置
@@ -10,7 +13,8 @@ class Flight:
         self.pos = [0.0,0.0,0.0]
         self.vel = [0.0,0.0,0.0]
         #图像信息
-        self.imgRsts = []
+        self.imgRsts = [] #ImageRst
+        #self.carGlobal = [] #class car
         #飞机当前状态
         self.state = "powerDown"
 

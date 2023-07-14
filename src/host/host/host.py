@@ -8,10 +8,23 @@ from host_interface.msg import FlightTarget
 from host_interface.msg import ImageRst
 
 from host.car import Car
+from host.globalCar import GlobalCar
+
 from host.flight import Flight
 from host.shiftPlan import ShiftPlan
 from host.scheduler import Scheduler
 
+#from host.globalPos import *
+
+img2xyCoeff = 1 
+tellSameCarThre = 5#r
+
+import math
+
+def carDistence(car1,car2):
+    x = car1.pos[0] - car2.pos[0]
+    y = car1.pos[1] - car2.pos[1]
+    return math.sqrt(x*x+y*y)
 
 class Host(Node):
     def __init__(self,name):
@@ -43,10 +56,58 @@ class Host(Node):
         #地面站状态机
         self.state = "init_powerUp"
         self.timer = self.create_timer(0.1,self.run)
+        #last all car pos
+        allCarPos_last = []
 
     #由飞机信息确定真车
     def confirmTrueCar(self):
-        pass
+        #generate global car position
+        #convert image info to xyz
+        allCarList = []
+        for i in range(5):
+            self.flights[i].carGlobal = []
+
+            for j in range(len(self.flights[i].imgRsts)):
+                coeffx = self.flights[i].imgRsts[j].x*(img2xyCoeff * self.flights[i].pos[2])
+                coeffy = self.flights[i].imgRsts[j].y*(img2xyCoeff * self.flights[i].pos[2])
+                car = GlobalCar()
+                car.car.num = self.flights[i].imgRsts[j].num
+                car.car.pos = [self.flights[i].pos[0]+coeffx,self.flights[i].pos[1]+coeffy]
+                flag = 0
+                for k in range(len(allCarList)):
+                    car_last = allCarList[k]
+                    if car.car.num == car_last.car.num and \
+                    carDistence(car.car,car_last.car) < tellSameCarThre and \
+                    i not in car_last.flightSight:
+                        self.flights[i].imgRsts[j].global_car_id = k
+                        flag = 1
+                        car_last.car.pos[0] += car.car.pos[0]
+                        car_last.car.pos[1] += car.car.pos[1]
+                        car_last.mergeTimes += 1
+                        car_last.flightSight.append(i)
+                        break
+                        # if carDistence(car.car,car_last.car) < tellSameCarThre:
+                        #     self.flights[i].ImageRst[j].global_car_id = k
+                        #     flag = 1
+                        #     break
+                if flag == 0:
+                    car.mergeTimes += 1
+                    car.flightSight.append(i)
+                    allCarList.append(car)
+        
+        for i in range(len(allCarList)):
+            allCarList[i].car.pos[0] /= allCarList[i].mergeTimes
+            allCarList[i].car.pos[1] /= allCarList[i].mergeTimes
+            print(allCarList[i].car.num)
+            print(allCarList[i].car.pos)
+        #allCarPos = getGobalPos(self.flights,img2xyCoeff,tellSameCarThre)
+        # for car in allCarPos:
+        #     print(car.num)
+        #     print(car.pos)
+        while 1:
+            pass
+        #TODO: tell true car and confirm car number
+        #allCarPos_last = allCarPos
 
     #判断数字是否改变
     def tellNumChanged(self):
@@ -80,7 +141,7 @@ class Host(Node):
     #对应状态执行
     def run(self):
         self.time = self.time + 0.1
-        print('haoye')
+        time.sleep(1)
         #计算真车的位置
         self.confirmTrueCar()
         #状态处理
