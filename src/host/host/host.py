@@ -37,7 +37,7 @@ class Host(Node):
             )
 
         #全局时钟
-        self.time = 0
+        self.time = 0.0
         #起点坐标
         self.startPos = [0.0,0.0,0.0]
         #地面站状态机
@@ -64,7 +64,8 @@ class Host(Node):
     def newState(self,event):
         transitions = {
             ## state_from   event    state_to
-            "init_powerUp":{"init_flightReady":"init_waitNum"},
+            "init_powerUp":{"init_flightReady":"init_standby"},
+            "init_standby":{"init_flyCmdInput":"init_waitNum"},
             "init_waitNum":{"init_newNum":"init_catchCar"},
             "init_catchCar":{"init_ready":"idle"},
             "idle":{"numChanged":"run"},
@@ -73,19 +74,41 @@ class Host(Node):
 
         if event in transitions[self.state]:
             self.state = transitions[self.state][event]
+            print("new state:"+self.state)
 
 
     #对应状态执行
     def run(self):
+        self.time = self.time + 0.1
         print('haoye')
         #计算真车的位置
         self.confirmTrueCar()
         #状态处理
         event = ""
         if self.state == "init_powerUp":
-            pass
+            #check number of flights
+            sum = 0
+            for i in range(5):
+                if self.flights[i].state == "power_up":
+                    sum = sum + 1
+            #all flights power up
+            if sum == 5:
+                event = "init_flightReady"  
+
+        elif self.state == "init_standby":
+            #wait keyboard input 'takeoff'
+            #send init position and change flight state
+            req = [] #new flight event: takeoff 
+            for i in range(5):
+                self.clis[i].call_async(req[i])
+            self.time = 0
+            event = "init_flyCmdInput"
+
         elif self.state == "init_waitNum":
-            pass
+            #wait 50s
+            if self.time > 50:
+                event = "init_newNum"
+
         elif self.state == "init_catchCar":
             pass
         elif self.state == "idle":
@@ -94,7 +117,7 @@ class Host(Node):
                 #计算期望位置
                 target = self.getTargetPos()
                 #发送定位模式请求
-                req = []
+                req = [] #new flight event: changeCar
                 for i in range(5):
                     self.clis[i].call_async(req[i])
                 #产生"numChanged"事件
@@ -112,7 +135,7 @@ class Host(Node):
                 else:
                     if self.tellTargetFollowed(self.flights[i]):
                         req = FlightState.Request()
-                        req.state = "follow_number"
+                        req.event = "rightPos"
                         self.clis[i].call_async(req)
                     else:
                         self.pubs[i].publish(target[i])
@@ -132,13 +155,16 @@ class Host(Node):
 def main(args=None):
     rclpy.init(args=args)                            # ROS2 Python接口初始化
     node = Host("HostNode")                          # 创建ROS2节点对象并进行初始化
-    # while rclpy.ok():
-    #     #print('haoye1\n')
-    #     rclpy.spin_once(node)
-    #     #print('haoye2\n')
-    #     node.run()
-    #     print('haoye3\n')
-    rclpy.spin(node)
+    while rclpy.ok():
+        #print('haoye1\n')
+        if node.state == "init_standby":
+            while input('ready to takeoff?[y]') != 'y':
+                pass
+        rclpy.spin_once(node)
+        #print('haoye2\n')
+        #node.run()
+        #print('haoye3\n')
+    #rclpy.spin(node)
     node.destroy_node()                              # 销毁节点对象
     rclpy.shutdown()                                 # 关闭ROS2 Python接口
 
