@@ -3,11 +3,11 @@ FilePath: flight.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-12 08:52:04
 LastEditors: Please set LastEditors
-LastEditTime: 2023-07-13 09:32:58
+LastEditTime: 2023-07-14 09:10:41
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
-
+     
 import rclpy                                     # ROS2 Python接口库
 from rclpy.node import Node                      # ROS2 节点类
 from std_msgs.msg import String                  # 字符串消息类型
