@@ -54,7 +54,7 @@ class Host(Node):
 
     #计算目标位置
     def getTargetPos(self):
-        pass
+        return []
 
     #判断是否能切换跟图模式
     def tellTargetFollowed(self,flight):
@@ -107,11 +107,11 @@ class Host(Node):
             #统计跟上指令的飞机
             sum = 0
             for i in range(5):
-                if self.flights.state == "follow_number":
+                if self.flights[i].state == "follow_number":
                     sum = sum + 1
                 else:
                     if self.tellTargetFollowed(self.flights[i]):
-                        req = FlightState.request()
+                        req = FlightState.Request()
                         req.state = "follow_number"
                         self.clis[i].call_async(req)
                     else:

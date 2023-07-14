@@ -37,9 +37,9 @@ class Flight:
         print(self.state)
         pass
     #改飞机状态
-    def newState():
+    def newState(self):
         pass
     #改飞机目标点
-    def newTarget():
+    def newTarget(self):
         pass
 
