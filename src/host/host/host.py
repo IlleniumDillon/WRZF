@@ -18,6 +18,10 @@ from host.scheduler import Scheduler
 
 img2xyCoeff = 1 
 tellSameCarThre = 5#r
+flightNum = 5
+allCarListLen = 10
+tellSameCarThre2 = 3
+tellCarMoveThre = 0.5
 
 import math
 
@@ -26,19 +30,43 @@ def carDistence(car1,car2):
     y = car1.pos[1] - car2.pos[1]
     return math.sqrt(x*x+y*y)
 
+def judgeCarMove(carList): #carList GlobalCar
+    avgPos = [0.0,0.0]
+    for i in range(allCarListLen):
+        avgPos[0] += carList[i].car.pos[0]
+        avgPos[1] += carList[i].car.pos[1]
+    avgPos[0] /= allCarListLen
+    avgPos[1] /= allCarListLen
+
+    sumDis = 0.0
+
+    for i in range(allCarListLen):
+        dx = carList[i].car.pos[0] - avgPos[0]
+        dy = carList[i].car.pos[1] - avgPos[1]
+        dis = dx*dx+dy*dy
+        sumDis += dis
+
+    sumDis /= allCarListLen
+
+    if sumDis > tellCarMoveThre:
+        return True
+    else:
+        return False
+
 class Host(Node):
     def __init__(self,name):
         super().__init__(name)
         #5个飞机的实例
         self.flights = [Flight(0),Flight(1),Flight(2),Flight(3),Flight(4)]
         #3个真车的实例
-        self.cars = [Car(0),Car(1),Car(2)]
+        self.cars = [Car(-1),Car(-1),Car(-1)]
+        self.trueCarIndx = [-1,-1,-1]
 
         #sub srv cli pub
         self.subs = []
         self.clis = []
         self.pubs = []
-        for i in range(5):
+        for i in range(flightNum):
             self.subs.append(
                 self.create_subscription(FlightInfo, 'flightInfo_'+str(i), self.flights[i].getInfoCallback, 10)
             )
@@ -57,20 +85,21 @@ class Host(Node):
         self.state = "init_powerUp"
         self.timer = self.create_timer(0.1,self.run)
         #last all car pos
-        allCarPos_last = []
+        allCarList_last = [[],[],[],[],[],[]]        
 
     #由飞机信息确定真车
     def confirmTrueCar(self):
         #generate global car position
         #convert image info to xyz
         allCarList = []
-        for i in range(5):
+        for i in range(flightNum):
             self.flights[i].carGlobal = []
 
             for j in range(len(self.flights[i].imgRsts)):
                 coeffx = self.flights[i].imgRsts[j].x*(img2xyCoeff * self.flights[i].pos[2])
                 coeffy = self.flights[i].imgRsts[j].y*(img2xyCoeff * self.flights[i].pos[2])
                 car = GlobalCar()
+                car.time = self.time
                 car.car.num = self.flights[i].imgRsts[j].num
                 car.car.pos = [self.flights[i].pos[0]+coeffx,self.flights[i].pos[1]+coeffy]
                 flag = 0
@@ -95,6 +124,92 @@ class Host(Node):
                     car.flightSight.append(i)
                     allCarList.append(car)
         
+        if self.state == "init_catchCar" :
+            ##这里和下一个分支是一样的
+            allCarList_append_temp = [GlobalCar(),GlobalCar(),GlobalCar(),GlobalCar(),GlobalCar(),GlobalCar()]
+            for i in range(len(allCarList)):
+                car_now = allCarList[i]
+                flag = 0
+                for j in range(6):
+                    if len(allCarList_last[j]) == 0:
+                        break
+                    car_last = allCarList_last[j][-1]
+                    dis = carDistence(car_now,car_last)
+                    if dis < tellSameCarThre2:
+                        allCarList_append_temp[j] = car_now
+                        flag = 1
+                        break
+                if flag == 0:
+                    for j in range(6):
+                        if len(allCarList_last[j]) == 0:
+                            allCarList_append_temp[j] = car_now
+            for i in range(6):
+                if allCarList_append_temp[i].time > 0:
+                    allCarList_last[i].append(allCarList_append_temp[i])
+                    if len(allCarList_last[i]) > allCarListLen :
+                        allCarList_last[i].pop(0)
+            ##上面和下一个分支是一样的
+                        if judgeCarMove(allCarList_last[i]):
+                            #这里认为第一个动的就是第一辆真车编号是0
+                            for j in range(3):
+                                if self.trueCarIndx[j] == -1:
+                                    self.trueCarIndx[j] = i
+            for i in range(3):
+                if self.trueCarIndx[i] == -1:
+                    self.cars[i].num = allCarList_last[self.trueCarIndx[i]][-1].num
+                    self.cars[i].pos = allCarList_last[self.trueCarIndx[i]][-1].pos
+                    self.cars[i].id = i
+
+        else:
+            allCarList_append_temp = [GlobalCar(),GlobalCar(),GlobalCar(),GlobalCar(),GlobalCar(),GlobalCar()]
+            for i in range(len(allCarList)):
+                car_now = allCarList[i]
+                flag = 0
+                for j in range(6):
+                    if len(allCarList_last[j]) == 0:
+                        break
+                    car_last = allCarList_last[j][-1]
+                    dis = carDistence(car_now,car_last)
+                    if dis < tellSameCarThre2:
+                        allCarList_append_temp[j] = car_now
+                        flag = 1
+                        break
+                if flag == 0:
+                    for j in range(6):
+                        if len(allCarList_last[j]) == 0:
+                            allCarList_append_temp[j] = car_now
+
+            missFlag = -1
+            for i in range(6):
+                if allCarList_append_temp[i].time > 0:
+                    allCarList_last[i].append(allCarList_append_temp[i])
+                    if len(allCarList_last[i]) > allCarListLen :
+                        allCarList_last[i].pop(0)
+                    if i in self.trueCarIndx:
+                        self.cars[i].num = allCarList_last[self.trueCarIndx[i]][-1].num
+                        self.cars[i].pos = allCarList_last[self.trueCarIndx[i]][-1].pos
+                        self.cars[i].id = i
+                else:
+                    if i in self.trueCarIndx:
+                        missFlag = trueCarIndx.indx(i)
+
+            if missFlag == 0:
+                self.cars[0].num = 5 - self.cars[1].num - self.cars[2].num
+                dx = self.cars[1].pos[0] - self.cars[2].pos[0]
+                dy = self.cars[1].pos[1] - self.cars[2].pos[1]
+                self.cars[0].pos[0] = self.cars[1].pos[0] + dx
+                self.cars[0].pos[1] = self.cars[1].pos[1] + dy
+            elif missFlag == 1:
+                self.cars[1].num = 5 - self.cars[0].num - self.cars[2].num
+                self.cars[1].pos[0] = (self.cars[0].pos[0]+self.cars[2].pos[0]) / 2
+                self.cars[1].pos[1] = (self.cars[0].pos[1]+self.cars[2].pos[1]) / 2
+            elif missFlag == 2:
+                self.cars[2].num = 5 - self.cars[0].num - self.cars[1].num
+                dx = self.cars[0].pos[0] - self.cars[1].pos[0]
+                dy = self.cars[0].pos[1] - self.cars[1].pos[1]
+                self.cars[2].pos[0] = self.cars[1].pos[0] - dx
+                self.cars[2].pos[1] = self.cars[1].pos[1] - dy
+
         for i in range(len(allCarList)):
             allCarList[i].car.pos[0] /= allCarList[i].mergeTimes
             allCarList[i].car.pos[1] /= allCarList[i].mergeTimes
@@ -141,26 +256,26 @@ class Host(Node):
     #对应状态执行
     def run(self):
         self.time = self.time + 0.1
-        time.sleep(1)
         #计算真车的位置
-        self.confirmTrueCar()
+        if self.state == "init_catchCar" or self.state == "idle" or self.state == "run" :
+            self.confirmTrueCar()
         #状态处理
         event = ""
         if self.state == "init_powerUp":
             #check number of flights
             sum = 0
-            for i in range(5):
+            for i in range(flightNum):
                 if self.flights[i].state == "power_up":
                     sum = sum + 1
             #all flights power up
-            if sum == 5:
+            if sum == flightNum:
                 event = "init_flightReady"  
 
         elif self.state == "init_standby":
             #wait keyboard input 'takeoff'
             #send init position and change flight state
             req = [] #new flight event: takeoff 
-            for i in range(5):
+            for i in range(flightNum):
                 self.clis[i].call_async(req[i])
             self.time = 0
             event = "init_flyCmdInput"
@@ -171,7 +286,16 @@ class Host(Node):
                 event = "init_newNum"
 
         elif self.state == "init_catchCar":
-            pass
+            #TODO: 
+            if -1 not in self.trueCarIndx:
+                #计算期望位置
+                target = self.getTargetPos()
+                #发送定位模式请求
+                req = [] #new flight event: catchCar
+                for i in range(flightNum):
+                    self.clis[i].call_async(req[i])
+                event = "init_ready"
+
         elif self.state == "idle":
             #判断数字是否改变，
             if self.tellNumChanged():
@@ -179,7 +303,7 @@ class Host(Node):
                 target = self.getTargetPos()
                 #发送定位模式请求
                 req = [] #new flight event: changeCar
-                for i in range(5):
+                for i in range(flightNum):
                     self.clis[i].call_async(req[i])
                 #产生"numChanged"事件
                 event = "numChanged"
@@ -190,7 +314,7 @@ class Host(Node):
             #发送指令
             #统计跟上指令的飞机
             sum = 0
-            for i in range(5):
+            for i in range(flightNum):
                 if self.flights[i].state == "follow_number":
                     sum = sum + 1
                 else:
@@ -201,7 +325,7 @@ class Host(Node):
                     else:
                         self.pubs[i].publish(target[i])
             #判断是不是都跟上了
-            if sum == 5:
+            if sum == flightNum:
                 event = "catched"
         else:
             pass

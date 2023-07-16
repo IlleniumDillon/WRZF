@@ -2,8 +2,8 @@
 FilePath: flight.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-12 08:52:04
-LastEditors: Please set LastEditors
-LastEditTime: 2023-07-14 15:46:45
+LastEditors: IlleniumDillon 147900130@qq.com
+LastEditTime: 2023-07-16 21:45:43
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
@@ -37,7 +37,8 @@ class FlightNode(Node):
         self.pix_error = 10
 
         #起飞阶段相关参数
-
+        self.first_height = 10
+        self.first_height_differ = 3
 
         #
 
@@ -146,13 +147,15 @@ class FlightNode(Node):
         self.desPoint[2] = self.number_height + self.height_differ*self.flightID
         for i in range(3):
             self.pointPID[i].pidUpdate(self.desPoint[i],self.pos[i])
-        return [self.pointPID[0].out,self.pointPID[1].out,self.pointPID[2].out]
+        return [self.desPoint[0],self.desPoint[1],self.desPoint[2]]
 
-    def send2Flight(self,outVel):
+    def send2Flight(self,outVel_Pos,posFlag):
         #TODO:注意坐标系转化,注意速度模式和位置模式
-        self.uav.Link.SendCmdOffboardSetVel(offboardCoord.NEU, 1000, 3.4, 2.5, 0.2, 0)
-        self.uav.Link.SendCmdOffboardSetPos(offboardCoord.WGS84, 1000, 41.6649831*1e7, 123.6705423*1e7, 200.12, 0)
-        pass
+        if posFlag:
+            self.uav.Link.SendCmdOffboardSetPos(offboardCoord.WGS84, 1000, 41.6649831*1e7, 123.6705423*1e7, 200.12, 0)
+        else :
+            self.uav.Link.SendCmdOffboardSetVel(offboardCoord.NEU, 1000, 3.4, 2.5, 0.2, 0)
+
 
     def flightUpdate(self):
         self.getFlightInfo()
@@ -160,11 +163,11 @@ class FlightNode(Node):
         self.flightPub()
         if self.fsm.getState() == 'follow_number':
             self.desPoint[2] = self.number_height 
-            self.send2Flight(self.imgCtrl())
+            self.send2Flight(self.imgCtrl(),False)
 
         elif self.fsm.getState() == 'follow_number_high' :
             self.desPoint[2] = self.number_height + self.height_differ*self.flightID
-            self.send2Flight(self.imgCtrl())
+            self.send2Flight(self.imgCtrl(),False)
             #从高处跟数字 切为 跟坐标
             if self.fsm.getLastState() == 'follow_number' and abs(self.pointPID[2].error) < self.height_error:
                 self.fsm.transition('rightHeight')
@@ -177,7 +180,7 @@ class FlightNode(Node):
                 pass
 
         elif self.fsm.getState() == 'follow_point' :
-            self.send2Flight(self.pointCtrl())
+            self.send2Flight(self.pointCtrl(),True)
 
         elif self.fsm.getState() == 'power_up':
             #TODO:上电，等待
@@ -191,9 +194,8 @@ class FlightNode(Node):
            
         elif self.fsm.getState() == 'go_start': 
             #TODO:到达起飞点，等待
-            pass
-        # elif self.fsm.getState() == 'go_dir':
-
+            self.desPoint[2] = self.first_height + self.flightID * self.first_height_differ
+            self.send2Flight(self.desPoint[0],self.desPoint[1],self.desPoint[2],True)
 
         else:
             pass#异常

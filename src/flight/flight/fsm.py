@@ -2,8 +2,8 @@
 FilePath: fsm.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-14 11:20:55
-LastEditors: Please set LastEditors
-LastEditTime: 2023-07-14 14:41:32
+LastEditors: IlleniumDillon 147900130@qq.com
+LastEditTime: 2023-07-16 20:56:00
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
@@ -18,7 +18,7 @@ class FSM:
             #state_from       event         state_to
             'power_up' : {'takeoff' : 'go_height'},
             'go_up_height' : {'rightHeight' : 'go_start'},
-            'go_start' : {'???' : 'follow_number_high'},
+            'go_start' : {'catchCar' : 'follow_number_high'},
             'follow_number' : {'changeCar' : 'follow_number_high'},
             'follow_number_high' : {'rightHeight' : 'follow_point',
                                     'rightPix' : 'follow_number'},
