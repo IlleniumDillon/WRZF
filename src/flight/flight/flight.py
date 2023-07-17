@@ -13,16 +13,16 @@ from rclpy.node import Node                      # ROS2 节点类
 from std_msgs.msg import String                  # 字符串消息类型
 import numpy as np
 
-from fsm import FSM
-from pid import PID
+from flight.fsm import FSM
+from flight.pid import PID
 
 from host_interface.srv import FlightState
 from host_interface.msg import FlightInfo
 from host_interface.msg import FlightTarget
 from host_interface.msg import ImageRst
 
-from PyTPSDK.UAVItem import *
-from PyTPSDK.LinkDef import *
+from flight.UAVItem import *
+from flight.LinkDef import *
 
 class FlightNode(Node):
     
@@ -30,7 +30,9 @@ class FlightNode(Node):
         super().__init__(name)          #父节点初始化
 
         #可调常量参数
-        self.flightID = 0
+        self.declare_parameter('flight_id',"0")
+        self.flightID = int(self.get_parameter('flight_id').get_parameter_value().string_value)
+        self.get_logger().info('%d'%self.flightID)
         self.number_height = 5
         self.height_differ = 2
         self.height_error = 0.5
@@ -42,8 +44,7 @@ class FlightNode(Node):
 
         #
 
-        #与飞控相关
-        self.uav = uavitem('COM4')
+        
 
         #飞行信息
         self.rpy = [0.0,0.0,0.0]
@@ -75,7 +76,10 @@ class FlightNode(Node):
         self.flight_pub_ = self.create_publisher(FlightInfo, 'flightInfo_%d'%(self.flightID), 10)
         self.fsm_srv_ = self.create_service(FlightState, 'flightState_%d'%(self.flightID), self.fsmChangeSrv_callback)
         self.point_sub_ = self.create_subscription(FlightTarget, "flightTarget_%d"%(self.flightID), self.desPointSub_callback, 10)
+        self.imh_sub_ = self.create_subscription(FlightInfo,'ImgInfo_%d' % self.flightID, self.imgProcess_callback,10)
         self.timer = self.create_timer(0.1,self.flightUpdate)
+        #与飞控相关
+        self.uav = uavitem('COM4')
 
 
     #TODO:获取飞控信息
@@ -83,8 +87,8 @@ class FlightNode(Node):
         pass
 
     #TODO:调用图像处理函数
-    def imgProcess(self):
-        pass
+    def imgProcess_callback(self,msg):
+        self.imgInfo = msg.rsts
 
     #给地面站发送自己的飞行信息
     def flightPub(self):
@@ -104,6 +108,8 @@ class FlightNode(Node):
         if self.fsm.getLastState() == 'follow_number':
             for i in range(2):
                 self.pointPID[i].pidClear()   
+        response.flag = 1
+        return response
         
 
     #接收地面站发送坐标
@@ -159,7 +165,6 @@ class FlightNode(Node):
 
     def flightUpdate(self):
         self.getFlightInfo()
-        self.imgProcess()
         self.flightPub()
         if self.fsm.getState() == 'follow_number':
             self.desPoint[2] = self.number_height 
@@ -187,6 +192,7 @@ class FlightNode(Node):
             pass
         elif self.fsm.getState() == 'go_up_height': 
             #TODO：起飞到特定高度 还需确认接口使用无误
+            self.send2Flight(self.pointCtrl(),True)
             self.uav.Link.SendCmdTakeoff()
             if abs(self.pointPID[2].error) < self.height_error:
                 self.fsm.transition('rightHeight')
@@ -195,7 +201,7 @@ class FlightNode(Node):
         elif self.fsm.getState() == 'go_start': 
             #TODO:到达起飞点，等待
             self.desPoint[2] = self.first_height + self.flightID * self.first_height_differ
-            self.send2Flight(self.desPoint[0],self.desPoint[1],self.desPoint[2],True)
+            self.send2Flight([self.desPoint[0],self.desPoint[1],self.desPoint[2]],True)
 
         else:
             pass#异常

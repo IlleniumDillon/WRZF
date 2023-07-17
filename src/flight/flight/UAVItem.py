@@ -1,7 +1,7 @@
 
-from Telemetry import *
-from LinkUtils import *
-import TPLink
+from flight.Telemetry import *
+from flight.LinkUtils import *
+import flight.TPLink as TPLink
 # 描述飞机对象类
 
 class uavitem(object):

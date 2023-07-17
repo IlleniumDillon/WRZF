@@ -85,7 +85,7 @@ class Host(Node):
         self.state = "init_powerUp"
         self.timer = self.create_timer(0.1,self.run)
         #last all car pos
-        allCarList_last = [[],[],[],[],[],[]]        
+        self.allCarList_last = [[],[],[],[],[],[]]        
 
     #由飞机信息确定真车
     def confirmTrueCar(self):
@@ -131,9 +131,9 @@ class Host(Node):
                 car_now = allCarList[i]
                 flag = 0
                 for j in range(6):
-                    if len(allCarList_last[j]) == 0:
+                    if len(self.allCarList_last[j]) == 0:
                         break
-                    car_last = allCarList_last[j][-1]
+                    car_last = self.allCarList_last[j][-1]
                     dis = carDistence(car_now,car_last)
                     if dis < tellSameCarThre2:
                         allCarList_append_temp[j] = car_now
@@ -141,23 +141,23 @@ class Host(Node):
                         break
                 if flag == 0:
                     for j in range(6):
-                        if len(allCarList_last[j]) == 0:
+                        if len(self.allCarList_last[j]) == 0:
                             allCarList_append_temp[j] = car_now
             for i in range(6):
                 if allCarList_append_temp[i].time > 0:
-                    allCarList_last[i].append(allCarList_append_temp[i])
-                    if len(allCarList_last[i]) > allCarListLen :
-                        allCarList_last[i].pop(0)
+                    self.allCarList_last[i].append(allCarList_append_temp[i])
+                    if len(self.allCarList_last[i]) > allCarListLen :
+                        self.allCarList_last[i].pop(0)
             ##上面和下一个分支是一样的
-                        if judgeCarMove(allCarList_last[i]):
+                        if judgeCarMove(self.allCarList_last[i]):
                             #这里认为第一个动的就是第一辆真车编号是0
                             for j in range(3):
                                 if self.trueCarIndx[j] == -1:
                                     self.trueCarIndx[j] = i
             for i in range(3):
-                if self.trueCarIndx[i] == -1:
-                    self.cars[i].num = allCarList_last[self.trueCarIndx[i]][-1].num
-                    self.cars[i].pos = allCarList_last[self.trueCarIndx[i]][-1].pos
+                if self.trueCarIndx[i] != -1:
+                    self.cars[i].num = self.allCarList_last[self.trueCarIndx[i]][-1].num
+                    self.cars[i].pos = self.allCarList_last[self.trueCarIndx[i]][-1].pos
                     self.cars[i].id = i
 
         else:
@@ -166,9 +166,9 @@ class Host(Node):
                 car_now = allCarList[i]
                 flag = 0
                 for j in range(6):
-                    if len(allCarList_last[j]) == 0:
+                    if len(self.allCarList_last[j]) == 0:
                         break
-                    car_last = allCarList_last[j][-1]
+                    car_last = self.allCarList_last[j][-1]
                     dis = carDistence(car_now,car_last)
                     if dis < tellSameCarThre2:
                         allCarList_append_temp[j] = car_now
@@ -176,22 +176,22 @@ class Host(Node):
                         break
                 if flag == 0:
                     for j in range(6):
-                        if len(allCarList_last[j]) == 0:
+                        if len(self.allCarList_last[j]) == 0:
                             allCarList_append_temp[j] = car_now
 
             missFlag = -1
             for i in range(6):
                 if allCarList_append_temp[i].time > 0:
-                    allCarList_last[i].append(allCarList_append_temp[i])
-                    if len(allCarList_last[i]) > allCarListLen :
-                        allCarList_last[i].pop(0)
+                    self.allCarList_last[i].append(allCarList_append_temp[i])
+                    if len(self.allCarList_last[i]) > allCarListLen :
+                        self.allCarList_last[i].pop(0)
                     if i in self.trueCarIndx:
-                        self.cars[i].num = allCarList_last[self.trueCarIndx[i]][-1].num
-                        self.cars[i].pos = allCarList_last[self.trueCarIndx[i]][-1].pos
+                        self.cars[i].num = self.allCarList_last[self.trueCarIndx[i]][-1].num
+                        self.cars[i].pos = self.allCarList_last[self.trueCarIndx[i]][-1].pos
                         self.cars[i].id = i
                 else:
                     if i in self.trueCarIndx:
-                        missFlag = trueCarIndx.indx(i)
+                        missFlag = self.trueCarIndx.index(i)
 
             if missFlag == 0:
                 self.cars[0].num = 5 - self.cars[1].num - self.cars[2].num
@@ -274,9 +274,12 @@ class Host(Node):
         elif self.state == "init_standby":
             #wait keyboard input 'takeoff'
             #send init position and change flight state
-            req = [] #new flight event: takeoff 
+            #req = [] #new flight event: takeoff 
             for i in range(flightNum):
-                self.clis[i].call_async(req[i])
+                req = FlightState.Request()
+                req.event = 'takeoff'
+                req.pos = self.startPos
+                self.clis[i].call_async(req)
             self.time = 0
             event = "init_flyCmdInput"
 
@@ -340,6 +343,12 @@ class Host(Node):
 def main(args=None):
     rclpy.init(args=args)                            # ROS2 Python接口初始化
     node = Host("HostNode")                          # 创建ROS2节点对象并进行初始化
+    Lon = float(input('start point Longitude:'))
+    Lat = float(input('start point Latitude:'))
+    Ele = float(input('start point Elevation:'))
+    node.startPos[0] = Lon
+    node.startPos[1] = Lat
+    node.startPos[1] = Ele
     while rclpy.ok():
         #print('haoye1\n')
         if node.state == "init_standby":

@@ -1,12 +1,12 @@
 import serial
 import threading
-import CRC16
+import flight.CRC16
 import logging
 import time
 
-from LinkDef import *
-from Telemetry import *
-from UAVItem import *
+from flight.LinkDef import *
+from flight.Telemetry import *
+from flight.UAVItem import *
 
 #----------------------------------------------------------------
 class tplink(object):

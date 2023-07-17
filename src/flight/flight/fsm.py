@@ -16,7 +16,7 @@ class FSM:
     def transition(self,event):
         _transitions = {
             #state_from       event         state_to
-            'power_up' : {'takeoff' : 'go_height'},
+            'power_up' : {'takeoff' : 'go_up_height'},
             'go_up_height' : {'rightHeight' : 'go_start'},
             'go_start' : {'catchCar' : 'follow_number_high'},
             'follow_number' : {'changeCar' : 'follow_number_high'},
@@ -28,6 +28,7 @@ class FSM:
         if event in _transitions[self.current_state]:
             self.last_state = self.current_state
             self.current_state = _transitions[self.current_state][event]
+            print("new state:"+self.current_state)
 
 
     def getState(self):
