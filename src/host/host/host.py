@@ -18,7 +18,7 @@ from host.scheduler import Scheduler
 
 img2xyCoeff = 1 
 tellSameCarThre = 5#r
-flightNum = 5
+flightNum = 1
 allCarListLen = 10
 tellSameCarThre2 = 3
 tellCarMoveThre = 0.5
@@ -219,8 +219,10 @@ class Host(Node):
         # for car in allCarPos:
         #     print(car.num)
         #     print(car.pos)
-        while 1:
-            pass
+
+        # while 1:
+        #     pass
+        
         #TODO: tell true car and confirm car number
         #allCarPos_last = allCarPos
 
@@ -246,7 +248,7 @@ class Host(Node):
             "init_catchCar":{"init_ready":"idle"},
             "idle":{"numChanged":"run"},
             "run":{"catched":"idle"},
-            
+
         }
 
         if event in transitions[self.state]:

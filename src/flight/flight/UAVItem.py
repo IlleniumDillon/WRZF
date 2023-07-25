@@ -1,13 +1,13 @@
 
 from flight.Telemetry import *
 from flight.LinkUtils import *
-import flight.TPLink as TPLink
+from flight.TPLink import *
 # 描述飞机对象类
 
 class uavitem(object):
     def __init__(self, port_num):
         self.Name    = '' # 对象名称
-        self.Link    = TPLink.tplink(port_num, self)
+        self.Link    = tplink(port_num, self)
 
         #region 姿态航向
         self.Roll    = 0.0 # 滚转角 deg
@@ -57,7 +57,15 @@ class uavitem(object):
     #--------------------------------------------------------------------------
     # 公共成员函数
     #--------------------------------------------------------------------------
+    def Open(self):
+        if self.Link is None:
+            return False
 
+        if(self.Link.IsOpened()):
+            self.Link.SendCmdHeartBeat()
+            return True
+
+        return False
 
     # 联机状态指示
     def IsConnected(self):
@@ -148,7 +156,7 @@ class uavitem(object):
             self.IsBatFail  = bit_test(tlm.Flags, 5)
 
         # debugging information
-        # print (f'{self.Roll:.2f} {self.Pitch:.2f} {self.Yaw:.2f} {self.Lat:.6f} {self.Lng:.6f}')
+        #print (f'{self.Roll:.2f} {self.Pitch:.2f} {self.Yaw:.2f} {self.Lat:.6f} {self.Lng:.6f}')
 
     # 吊舱遥测信息更新处理
     def OnGimbalTlmRcvEvent(self, gimbal):

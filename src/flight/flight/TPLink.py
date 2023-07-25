@@ -1,6 +1,6 @@
 import serial
 import threading
-import flight.CRC16
+from flight.CRC16 import *
 import logging
 import time
 
@@ -56,7 +56,7 @@ class tplink(object):
         # print (' '.join(format(data[i], '02x') for i in range(len)))
         # 计算并验证校验和
         exp = data[len - 2] + data[len - 1]*256
-        ret = CRC16.Calc(data[2:len-2])
+        ret = Calc(data[2:len-2])
         return ret == exp
 
     def __proc_response(self, data, len, offset):
@@ -128,7 +128,7 @@ class tplink(object):
 
         for j in range(len): snd_buf[i] = payload[j]; i += 1
 
-        crc = CRC16.Calc(snd_buf[2:i])       # 计算CRC校验码
+        crc = Calc(snd_buf[2:i])       # 计算CRC校验码
         snd_buf[i] = crc & 0xFF;      i += 1 # CRC低字节
         snd_buf[i] = (crc>>8) & 0xFF; i += 1 # CRC高字节
 
@@ -197,20 +197,9 @@ class tplink(object):
             return False
         return self.__comm.is_open
 
-    #----------------------------------------------------------------
-    # 发送飞行模式设置指令
-    #----------------------------------------------------------------
-    def SendCmdSetFlightMode(self, fm, fs):
-        if False == self.IsOpened():
-            return
-        i = 0
-        payload    = bytearray(linkdef.MaxPkSize)
-        payload[i] = linkcmd.SET_FLIGHT_MODE;   i += 1
-        payload[i] = (fs << 4 | fm);            i += 1
-
-        self.__safe_write_payload(payload, i)
-        logging.debug('SendCmdSetFlightMode')
-
+#------------------------------------------------------------------------------
+# 外部模式函数集合
+#------------------------------------------------------------------------------
     #----------------------------------------------------------------
     # 发送 Offboard 命令请求指令 [进入Offboard模式]
     #----------------------------------------------------------------
@@ -242,6 +231,7 @@ class tplink(object):
 
     #----------------------------------------------------------------
     # 发送 Offboard 命令请求指令 [设置目标位置]
+    #
     #----------------------------------------------------------------
     def SendCmdOffboardSetPos(self, coord, duration, posX, posY, posZ, deltaYaw):
         if False == self.IsOpened():
@@ -259,8 +249,8 @@ class tplink(object):
             for b in struct.pack('f', posX):   payload[i] = b; i+=1
             for b in struct.pack('f', posY):   payload[i] = b; i+=1
         else:
-            for b in int.to_bytes(int(posX),4, 'little'):payload[i] = b; i+=1
-            for b in int.to_bytes(int(posY),4, 'little'):payload[i] = b; i+=1
+            for b in int.to_bytes(int(posX*1e7), 4, 'little'):payload[i] = b; i+=1
+            for b in int.to_bytes(int(posY*1e7), 4, 'little'):payload[i] = b; i+=1
 
         for b in struct.pack('f', posZ):       payload[i] = b; i+=1
         for b in struct.pack('f', deltaYaw):   payload[i] = b; i+=1
@@ -317,6 +307,23 @@ class tplink(object):
             for b in para : payload[i] = b;     i+=1
         self.__safe_write_payload(payload, i)
 
+#------------------------------------------------------------------------------
+# 飞行控制模式函数集合
+#------------------------------------------------------------------------------
+    #----------------------------------------------------------------
+    # 发送飞行模式设置指令
+    #----------------------------------------------------------------
+    def SendCmdSetFlightMode(self, fm, fs):
+        if False == self.IsOpened():
+            return
+        i = 0
+        payload    = bytearray(linkdef.MaxPkSize)
+        payload[i] = linkcmd.SET_FLIGHT_MODE;   i += 1
+        payload[i] = (fs << 4 | fm);            i += 1
+
+        self.__safe_write_payload(payload, i)
+        logging.debug('SendCmdSetFlightMode')
+
     #----------------------------------------------------------------
     # DoAction指令工具函数-进入Hover模式
     #----------------------------------------------------------------
@@ -346,3 +353,192 @@ class tplink(object):
 
         self.SendCmdDoAction(actionsubcmd.TAKEOFF, None)
         logging.debug('SendCmdTakeoff')
+
+#------------------------------------------------------------------------------
+# 吊舱控制函数集合
+#------------------------------------------------------------------------------
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-吊舱移动-上
+    #----------------------------------------------------------------
+    def SendCmdPodMoveUp(self):
+        if False == self.IsOpened():
+            return
+
+        para = bytearray(2)
+        para[0] = podsubcmd.MOVE
+        para[1] = podMoveCode.UP
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodMoveUp')
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-吊舱移动-下
+    #----------------------------------------------------------------
+    def SendCmdPodMoveDown(self):
+        if False == self.IsOpened():
+            return
+
+        para = bytearray(2)
+        para[0] = podsubcmd.MOVE
+        para[1] = podMoveCode.DOWN
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodMoveDown')
+
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-吊舱移动-左
+    #----------------------------------------------------------------
+    def SendCmdPodMoveLeft(self):
+        if False == self.IsOpened():
+            return
+
+        para = bytearray(2)
+        para[0] = podsubcmd.MOVE
+        para[1] = podMoveCode.LEFT
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodMoveLeft')
+
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-吊舱移动-右
+    #----------------------------------------------------------------
+    def SendCmdPodMoveRight(self):
+        if False == self.IsOpened():
+            return
+
+        para = bytearray(2)
+        para[0] = podsubcmd.MOVE
+        para[1] = podMoveCode.RIGHT
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodMoveRight')
+
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-吊舱移动-停止
+    #----------------------------------------------------------------
+    def SendCmdPodMoveStop(self):
+        if False == self.IsOpened():
+            return
+
+        para = bytearray(2)
+        para[0] = podsubcmd.MOVE
+        para[1] = podMoveCode.STOP
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodMoveStop')
+
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-吊舱移动-归中
+    #----------------------------------------------------------------
+    def SendCmdPodMoveZero(self):
+        if False == self.IsOpened():
+            return
+
+        para    = bytearray(2)
+        para[0] = podsubcmd.MOVE
+        para[1] = podMoveCode.ZERO
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodMoveZero')
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-跟踪控制
+    #----------------------------------------------------------------
+    def SendCmdPodTraceCtrl(self, enable, x, y):
+        if False == self.IsOpened():
+            return
+
+        i = 0
+        para    = bytearray(10)
+        para[i] = podsubcmd.TRACE;            i+=1
+        para[i] = 1 if enable == True else 0; i+=1
+
+        for b in struct.pack('f', x):
+            para[i] = b;    i+=1
+
+        for b in struct.pack('f', y):
+            para[i] = b;    i+=1
+
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodTraceCtrl')
+
+    #----------------------------------------------------------------
+    # DoAction指令工具函数-吊舱控制-设置目标角度
+    #----------------------------------------------------------------
+    def SendCmdPodSetAngle(self, yaw, pitch):
+        if False == self.IsOpened():
+            return
+
+        i = 0
+        para    = bytearray(10)
+        para[0] = podsubcmd.ANGLE;            i+=1
+        para[1] = 0;                          i+=1
+
+        for b in struct.pack('f', yaw):
+            para[i] = b;    i+=1
+
+        for b in struct.pack('f', pitch):
+            para[i] = b;    i+=1
+
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodSetAngle')
+
+    #------------------------------------------------------------------------------
+    # DoAction指令工具函数-吊舱控制-OSD
+    #------------------------------------------------------------------------------
+    def SendCmdPodOSDCtrl(self, enable):
+        if False == self.IsOpened():
+            return
+
+        i = 0
+        para    = bytearray(10)
+        para[0] = podsubcmd.OSD;                i+=1
+        para[1] = 1 if enable == True else 0;   i+=1
+        self.SendCmdDoAction(actionsubcmd.POD_CTRL, para)
+        logging.debug('SendCmdPodOSDCtrl')
+
+    #------------------------------------------------------------------------------
+    # DoAction指令工具函数-进入引导模式
+    #------------------------------------------------------------------------------
+    def SendCmdEnterGuide(self, lat, lng, relAlt, radius= 0):
+        if False == self.IsOpened():
+            return
+
+        i = 0
+        para = bytearray(16)
+        for b in int.to_bytes(int(lat*1e7),    4, 'little'): para[i]=b; i+=1
+        for b in int.to_bytes(int(lng*1e7),    4, 'little'): para[i]=b; i+=1
+        for b in int.to_bytes(int(relAlt*100), 4, 'little'): para[i]=b; i+=1 # 相对高度cm
+        for b in int.to_bytes(int(radius*100), 4, 'little'): para[i]=b; i+=1 # 引导点半径cm 【正负号代表盘旋方向】
+
+        self.SendCmdDoAction(actionsubcmd.GUIDE, para)
+        logging.debug('SendCmdEnterGuide')
+
+    #------------------------------------------------------------------------------
+    # DoAction指令工具函数-离开引导模式
+    #------------------------------------------------------------------------------
+    def SendCmdExitGuide(self):
+        if False == self.IsOpened():
+            return
+
+        self.SendCmdDoAction(actionsubcmd.GUIDE, None)
+        logging.debug('SendCmdExitGuide')
+
+    #------------------------------------------------------------------------------
+    # 发送心跳报文
+    # #define UDEV_TYPE_CMPT 0x07U
+    # UID 0x11223344
+    #------------------------------------------------------------------------------
+    def SendCmdHeartBeat(self):
+        if False == self.IsOpened():
+            return
+        i = 0
+        payload    = bytearray(linkdef.MaxPkSize)
+        payload[i] = linkcmd.HEART_BEAT;   i += 1
+        payload[i] = 0x11;                 i += 1
+        payload[i] = 0x22;                 i += 1
+        payload[i] = 0x33;                 i += 1
+        payload[i] = 0x44;                 i += 1
+        payload[i] = 0x07;                 i += 1 # Device type
+        self.__safe_write_payload(payload, i)
+        logging.debug('SendCmdHeartBeat')
+

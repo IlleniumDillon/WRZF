@@ -82,13 +82,17 @@ class FlightNode(Node):
         #与飞控相关
         self.comNumber = self.get_parameter('com_number').get_parameter_value().string_value
         self.uav = uavitem(self.comNumber)
+        self.uav.Open()
         self.get_logger().info('%s'%self.comNumber)
         self.get_logger().info('%d'%self.uav.IsConnected())
+        self.uav.Link.SendCmdOffboardEnter()
+
 
 
     #TODO:获取飞控信息
     def getFlightInfo(self):
-        self.get_logger().info('%f'%self.uav.Pitch)
+        self.get_logger().info('%f'%self.uav.Lat)
+        pass
 
     #TODO:调用图像处理函数
     def imgProcess_callback(self,msg):
@@ -111,7 +115,10 @@ class FlightNode(Node):
         #从跟数字切为上升高度跟数字
         if self.fsm.getLastState() == 'follow_number':
             for i in range(2):
-                self.pointPID[i].pidClear()   
+                self.pointPID[i].pidClear()  
+        if self.fsm.getLastState() == 'go_up_height':
+            self.uav.Link.SendCmdOffboardEnter()
+
         response.flag = 1
         return response
         
@@ -162,7 +169,7 @@ class FlightNode(Node):
     def send2Flight(self,outVel_Pos,posFlag):
         #TODO:注意坐标系转化,注意速度模式和位置模式
         if posFlag:
-            self.uav.Link.SendCmdOffboardSetPos(offboardCoord.WGS84, 1000, 41.6649831*1e7, 123.6705423*1e7, 200.12, 0)
+            self.uav.Link.SendCmdOffboardSetPos(offboardCoord.WGS84, 1000, self.desPoint[0], self.desPoint[1], self.desPoint[2], 0)
         else :
             self.uav.Link.SendCmdOffboardSetVel(offboardCoord.NEU, 1000, 3.4, 2.5, 0.2, 0)
 
@@ -197,10 +204,9 @@ class FlightNode(Node):
         elif self.fsm.getState() == 'go_up_height': 
             #TODO：起飞到特定高度 还需确认接口使用无误
             self.send2Flight(self.pointCtrl(),True)
-            self.uav.Link.SendCmdTakeoff()
+            # self.uav.Link.SendCmdTakeoff()
             if abs(self.pointPID[2].error) < self.height_error:
                 self.fsm.transition('rightHeight')
-                self.uav.Link.SendCmdOffboardEnter()
            
         elif self.fsm.getState() == 'go_start': 
             #TODO:到达起飞点，等待
