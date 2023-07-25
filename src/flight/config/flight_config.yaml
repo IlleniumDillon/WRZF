@@ -1,0 +1,4 @@
+/flight/flight:
+  ros__parameters:
+    flight_id:  '1'
+    com_number: /dev/ttyTHS1

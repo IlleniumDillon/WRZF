@@ -246,6 +246,7 @@ class Host(Node):
             "init_catchCar":{"init_ready":"idle"},
             "idle":{"numChanged":"run"},
             "run":{"catched":"idle"},
+            
         }
 
         if event in transitions[self.state]:

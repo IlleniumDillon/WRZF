@@ -31,6 +31,7 @@ class FlightNode(Node):
 
         #可调常量参数
         self.declare_parameter('flight_id',"0")
+        self.declare_parameter('com_number',"/dev/ttyTHS0")
         self.flightID = int(self.get_parameter('flight_id').get_parameter_value().string_value)
         self.get_logger().info('%d'%self.flightID)
         self.number_height = 5
@@ -79,12 +80,15 @@ class FlightNode(Node):
         self.imh_sub_ = self.create_subscription(FlightInfo,'ImgInfo_%d' % self.flightID, self.imgProcess_callback,10)
         self.timer = self.create_timer(0.1,self.flightUpdate)
         #与飞控相关
-        self.uav = uavitem('COM4')
+        self.comNumber = self.get_parameter('com_number').get_parameter_value().string_value
+        self.uav = uavitem(self.comNumber)
+        self.get_logger().info('%s'%self.comNumber)
+        self.get_logger().info('%d'%self.uav.IsConnected())
 
 
     #TODO:获取飞控信息
     def getFlightInfo(self):
-        pass
+        self.get_logger().info('%f'%self.uav.Pitch)
 
     #TODO:调用图像处理函数
     def imgProcess_callback(self,msg):

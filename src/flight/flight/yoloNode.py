@@ -33,6 +33,8 @@ class YoloNode(Node):
         self.model = YOLO('/home/zerone/best.pt')
         # Open the video file
         self.cap = cv2.VideoCapture(0)
+        self.cap.set(3,640)
+        self.cap.set(4,480)
         self.imgInfo = []
         #注意这个是图像数据，只是数据类型是FlightInfo
         self.img_pub_ = self.create_publisher(FlightInfo, 'ImgInfo_%d' % self.flightID, 10)

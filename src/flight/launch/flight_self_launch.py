@@ -12,16 +12,12 @@ def generate_launch_description():
             flight_id_set_arg,
             Node(
                 package='flight',
-                executable='yolo',
-                name='yoloNode'
-            ),
-            Node(
-                package='flight',
                 executable='flight',
                 name='flightNode',
                 parameters=[
                     {
                         'flight_id':"0",
+                        'com_number':'/dev/ttyTHS0'
                     }
                 ]
             ),
