@@ -2,8 +2,8 @@
 FilePath: flight.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-12 08:52:04
-LastEditors: IlleniumDillon 147900130@qq.com
-LastEditTime: 2023-07-16 21:45:43
+LastEditors: Please set LastEditors
+LastEditTime: 2023-07-25 21:06:58
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
@@ -37,6 +37,7 @@ class FlightNode(Node):
         self.number_height = 5
         self.height_differ = 2
         self.height_error = 0.5
+        self.pos_error = 1
         self.pix_error = 10
 
         #起飞阶段相关参数
@@ -149,7 +150,8 @@ class FlightNode(Node):
             #异常
             pass
 
-
+        self.desPixX = 0
+        self.desPixY = 0
         #水平控制用图像，高度控制用点位
         self.pointPID[2].pidUpdate(self.desPoint[2],self.pos[2])
         self.imgPID[0].pidUpdate(self.desPixX ,self.imgInfo[0].x)#TODO:如果看到不止一个数字怎么办
@@ -212,6 +214,10 @@ class FlightNode(Node):
             #TODO:到达起飞点，等待
             self.desPoint[2] = self.first_height + self.flightID * self.first_height_differ
             self.send2Flight([self.desPoint[0],self.desPoint[1],self.desPoint[2]],True)
+            if abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
+            abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
+            abs(self.pos[0]-self.desPoint[0]) < self.pos_error :
+                self.fsm.transition('catchCar')
 
         else:
             pass#异常
