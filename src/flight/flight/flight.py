@@ -3,7 +3,7 @@ FilePath: flight.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-12 08:52:04
 LastEditors: Please set LastEditors
-LastEditTime: 2023-07-26 09:25:19
+LastEditTime: 2023-07-26 10:03:01
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
@@ -93,6 +93,9 @@ class FlightNode(Node):
     #TODO:获取飞控信息
     def getFlightInfo(self):
         self.get_logger().info('%f'%self.uav.Lat)
+        self.pos[0] = self.uav.Lng
+        self.pos[1] = self.uav.Lat
+        self.pos[2] = self.uav.Alt
 
         pass
 
@@ -128,7 +131,9 @@ class FlightNode(Node):
     #接收地面站发送坐标
     def desPointSub_callback(self,msg):
         self.desPoint[0] = msg.pos[0]
-        self.desPoint[1] = msg.pos[1]           
+        self.desPoint[1] = msg.pos[1] 
+        self.desPoint[2] = msg.pos[2] 
+
         self.desDir = msg.indx
         
 
@@ -159,14 +164,21 @@ class FlightNode(Node):
         min_distance = 1
         car_id = -1
         for car in self.imgInfo:
-            if self.imgInfo[car].
+            dis = self.imgInfo[car].x * self.imgInfo[car].x + self.imgInfo[car].y * self.imgInfo[car].y
+            if dis <min_distance:
+                min_distance = dis
+                car_id = car
+        if car_id == -1:
+            return [0,0,0]
 
         #水平控制用图像，高度控制用点位
+        self.desPoint[2] = self.number_height
+
         self.pointPID[2].pidUpdate(self.desPoint[2],self.pos[2])
-        self.imgPID[0].pidUpdate(self.desPixX ,self.imgInfo[0].x)#TODO:如果看到不止一个数字怎么办
-        self.imgPID[1].pidUpdate(self.desPixY ,self.imgInfo[0].y)
+        self.imgPID[0].pidUpdate(self.desPixX ,self.imgInfo[car_id].x)#TODO:如果看到不止一个数字怎么办
+        self.imgPID[1].pidUpdate(self.desPixY ,self.imgInfo[car_id].y)
        
-        return [self.imgPID[0].out,self.imgPID[1].out,self.pointPID[2].out]
+        return [self.imgPID[1].out,self.imgPID[0].out,self.pointPID[2].out]
 
 
     
@@ -189,7 +201,7 @@ class FlightNode(Node):
         self.getFlightInfo()
         self.flightPub()
         if self.fsm.getState() == 'follow_number':
-            self.desPoint[2] = self.number_height 
+            # self.desPoint[2] = self.number_height 
             self.send2Flight(self.imgCtrl(),False)
 
         elif self.fsm.getState() == 'follow_number_high' :
@@ -221,7 +233,7 @@ class FlightNode(Node):
            
         elif self.fsm.getState() == 'go_start': 
             #TODO:到达起飞点，等待
-            self.desPoint[2] = self.first_height + self.flightID * self.first_height_differ
+            # self.desPoint[2] = self.first_height + self.flightID * self.first_height_differ
             self.send2Flight([self.desPoint[0],self.desPoint[1],self.desPoint[2]],True)
             # if abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
             # abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
