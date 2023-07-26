@@ -154,6 +154,13 @@ class FlightNode(Node):
 
         self.desPixX = 0
         self.desPixY = 0
+
+        #follow the nearst car
+        min_distance = 1
+        car_id = -1
+        for car in self.imgInfo:
+            if self.imgInfo[car].
+
         #水平控制用图像，高度控制用点位
         self.pointPID[2].pidUpdate(self.desPoint[2],self.pos[2])
         self.imgPID[0].pidUpdate(self.desPixX ,self.imgInfo[0].x)#TODO:如果看到不止一个数字怎么办
@@ -216,10 +223,10 @@ class FlightNode(Node):
             #TODO:到达起飞点，等待
             self.desPoint[2] = self.first_height + self.flightID * self.first_height_differ
             self.send2Flight([self.desPoint[0],self.desPoint[1],self.desPoint[2]],True)
-            if abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
-            abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
-            abs(self.pos[0]-self.desPoint[0]) < self.pos_error :
-                self.fsm.transition('catchCar')
+            # if abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
+            # abs(self.pos[0]-self.desPoint[0]) < self.pos_error and \
+            # abs(self.pos[0]-self.desPoint[0]) < self.pos_error :
+            #     self.fsm.transition('catchCar')
 
         else:
             pass#异常

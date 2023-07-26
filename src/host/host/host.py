@@ -228,7 +228,7 @@ class Host(Node):
 
     #判断数字是否改变
     def tellNumChanged(self):
-        pass
+        return False
 
     #计算目标位置
     def getTargetPos(self):
@@ -237,6 +237,16 @@ class Host(Node):
     #判断是否能切换跟图模式
     def tellTargetFollowed(self,flight):
         pass
+    
+    def canCatchCar(self):
+        sum = 0
+        for i in range(flightNum):
+            if len(self.flights[i].imgRsts) != 0:
+                sum = sum + 1
+        if sum == flightNum:
+            return True
+        else:
+            return False
 
     #状态切换
     def newState(self,event):
@@ -260,8 +270,8 @@ class Host(Node):
     def run(self):
         self.time = self.time + 0.1
         #计算真车的位置
-        if self.state == "init_catchCar" or self.state == "idle" or self.state == "run" :
-            self.confirmTrueCar()
+        # if self.state == "init_catchCar" or self.state == "idle" or self.state == "run" :
+        #     self.confirmTrueCar()
         #状态处理
         event = ""
         if self.state == "init_powerUp":
@@ -293,14 +303,21 @@ class Host(Node):
 
         elif self.state == "init_catchCar":
             #TODO: 
-            if -1 not in self.trueCarIndx:
-                #计算期望位置
-                target = self.getTargetPos()
-                #发送定位模式请求
-                req = [] #new flight event: catchCar
+            if self.canCatchCar():
                 for i in range(flightNum):
-                    self.clis[i].call_async(req[i])
+                    req = FlightState.Request()
+                    req.event = 'catchCar'
+                    req.pos = self.startPos
+                    self.clis[i].call_async(req)
                 event = "init_ready"
+            # if -1 not in self.trueCarIndx:
+            #     #计算期望位置
+            #     target = self.getTargetPos()
+            #     #发送定位模式请求
+            #     req = [] #new flight event: catchCar
+            #     for i in range(flightNum):
+            #         self.clis[i].call_async(req[i])
+            #     event = "init_ready"
 
         elif self.state == "idle":
             #判断数字是否改变，
