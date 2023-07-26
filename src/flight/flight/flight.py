@@ -3,7 +3,7 @@ FilePath: flight.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-12 08:52:04
 LastEditors: Please set LastEditors
-LastEditTime: 2023-07-25 21:06:58
+LastEditTime: 2023-07-26 09:25:19
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
@@ -67,8 +67,8 @@ class FlightNode(Node):
 
 
         #控制
-        self.imgPID = [PID(1,0,0,100,50,0,0.1),
-                       PID(1,0,0,100,50,0,0.1)]
+        self.imgPID = [PID(10,0,0,100,50,0,0.1),
+                       PID(10,0,0,100,50,0,0.1)]
 
         self.pointPID = [PID(1,0,0,100,50,0,0.1),
                          PID(1,0,0,100,50,0,0.1),
@@ -93,6 +93,7 @@ class FlightNode(Node):
     #TODO:获取飞控信息
     def getFlightInfo(self):
         self.get_logger().info('%f'%self.uav.Lat)
+
         pass
 
     #TODO:调用图像处理函数
@@ -117,7 +118,7 @@ class FlightNode(Node):
         if self.fsm.getLastState() == 'follow_number':
             for i in range(2):
                 self.pointPID[i].pidClear()  
-        if self.fsm.getLastState() == 'go_up_height':
+        if self.fsm.getLastState() == 'go_start':
             self.uav.Link.SendCmdOffboardEnter()
 
         response.flag = 1
@@ -126,7 +127,8 @@ class FlightNode(Node):
 
     #接收地面站发送坐标
     def desPointSub_callback(self,msg):
-        self.desPoint = msg.pos           
+        self.desPoint[0] = msg.pos[0]
+        self.desPoint[1] = msg.pos[1]           
         self.desDir = msg.indx
         
 
@@ -173,7 +175,7 @@ class FlightNode(Node):
         if posFlag:
             self.uav.Link.SendCmdOffboardSetPos(offboardCoord.WGS84, 1000, self.desPoint[0], self.desPoint[1], self.desPoint[2], 0)
         else :
-            self.uav.Link.SendCmdOffboardSetVel(offboardCoord.NEU, 1000, 3.4, 2.5, 0.2, 0)
+            self.uav.Link.SendCmdOffboardSetVel(offboardCoord.NEU, 1000, outVel_Pos[0], outVel_Pos[1],outVel_Pos[2], 0)
 
 
     def flightUpdate(self):
