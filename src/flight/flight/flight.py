@@ -3,7 +3,7 @@ FilePath: flight.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-12 08:52:04
 LastEditors: Please set LastEditors
-LastEditTime: 2023-07-26 10:03:01
+LastEditTime: 2023-07-27 09:50:07
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
@@ -40,11 +40,11 @@ class FlightNode(Node):
         self.pos_error = 1
         self.pix_error = 10
 
-        self.declare_parameter('imgx_kp',"0.0")
-        self.declare_parameter('imgy_kp',"0.0")
+        self.declare_parameter('imgx_kp',"1.0")
+        self.declare_parameter('imgy_kp',"1.0")
         self.declare_parameter('posx_kp',"0.0")
         self.declare_parameter('posy_kp',"0.0")
-        self.declare_parameter('posz_kp',"0.0")
+        self.declare_parameter('posz_kp',"0.2")
 
         #起飞阶段相关参数
         self.first_height = 10
