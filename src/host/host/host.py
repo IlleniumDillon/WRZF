@@ -14,6 +14,8 @@ from host.flight import Flight
 from host.shiftPlan import ShiftPlan
 from host.scheduler import Scheduler
 
+from host.geo_map import *
+
 #from host.globalPos import *
 
 img2xyCoeff = 1 
@@ -79,7 +81,8 @@ class Host(Node):
 
         #全局时钟
         self.time = 0.0
-        #起点坐标
+        #起点坐标 or xyz
+        self.LLAorENU = 0
         self.startPos = [0.0,0.0,0.0]
         #地面站状态机
         self.state = "init_powerUp"
@@ -283,15 +286,34 @@ class Host(Node):
             #all flights power up
             if sum == flightNum:
                 event = "init_flightReady"  
+                self.time = 0
 
         elif self.state == "init_standby":
             #wait keyboard input 'takeoff'
             #send init position and change flight state
             #req = [] #new flight event: takeoff 
+            if self.time < 5:
+                return
+            print(self.flights[0].pos[0])
+            print(self.flights[0].pos[1])
+            print(self.flights[0].pos[2])
+            if self.LLAorENU == 0:#LLA
+                xy = geo_project(self.flights[0].pos[0],self.flights[0].pos[1],self.startPos[1],self.startPos[0])
+                for i in range(flightNum):
+                    ll = geo_reproject(self.flights[i].pos[0],self.flights[i].pos[1],xy[0],xy[1])
+                    self.flights[i].startPos[0] = ll[1]
+                    self.flights[i].startPos[1] = ll[0]
+                    self.flights[i].startPos[2] = self.startPos[2]
+            else:#ENU
+                for i in range(flightNum):
+                    ll = geo_reproject(self.flights[i].pos[0],self.flights[i].pos[1],self.startPos[1],self.startPos[0])
+                    self.flights[i].startPos[0] = ll[1]
+                    self.flights[i].startPos[1] = ll[0]
+                    self.flights[i].startPos[2] = self.flights[i].pos[2] + self.startPos[2]
             for i in range(flightNum):
                 req = FlightState.Request()
                 req.event = 'takeoff'
-                req.pos = self.startPos
+                req.pos = self.flights[i].startPos
                 self.clis[i].call_async(req)
             self.time = 0
             event = "init_flyCmdInput"
@@ -363,20 +385,25 @@ class Host(Node):
 def main(args=None):
     rclpy.init(args=args)                            # ROS2 Python接口初始化
     node = Host("HostNode")                          # 创建ROS2节点对象并进行初始化
-    Lon = float(input('start point Longitude:'))
-    Lat = float(input('start point Latitude:'))
-    Ele = float(input('start point Elevation:'))
+    Flag = int(input('LLA[0] or ENU[1]?'))
+    Lon = float(input('start point Longitude or east:'))
+    Lat = float(input('start point Latitude or north:'))
+    Ele = float(input('start point Elevation or up:'))
     print(Lon)
     print(Lat)
     print(Ele)
+    print(Flag)
+    node.LLAorENU = Flag
     node.startPos[0] = Lon
     node.startPos[1] = Lat
     node.startPos[2] = Ele
+    takeoffFlag = False
     while rclpy.ok():
         #print('haoye1\n')
-        if node.state == "init_standby":
+        if node.state == "init_standby" and takeoffFlag == False:
             while input('ready to takeoff?[y]') != 'y':
                 pass
+            takeoffFlag = True
         rclpy.spin_once(node)
         #print('haoye2\n')
         #node.run()

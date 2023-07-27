@@ -83,13 +83,13 @@ class YoloNode(Node):
         if success:
             # Run YOLOv8 inference on the frame
             results = self.model(frame)
-            annotated_frame = results[0].plot()
+            #annotated_frame = results[0].plot()
 
-            cv2.imshow("YOLOv8 Inference", annotated_frame)
+            #cv2.imshow("YOLOv8 Inference", annotated_frame)
 
             # Break the loop if 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                pass
+            # if cv2.waitKey(1) & 0xFF == ord("q"):
+            #     pass
             #TODO:添加错误检测逻辑，排除掉误检测的
             if len(results[0].boxes.xywh) > 0:
                 for i in range(len(results[0].boxes.xywh)):

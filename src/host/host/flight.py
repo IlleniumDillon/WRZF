@@ -17,6 +17,8 @@ class Flight:
         #self.carGlobal = [] #class car
         #飞机当前状态
         self.state = "powerDown"
+        #sart pos
+        self.startPos = [0.0,0.0,0.0]
 
         #########################-added-#########################
         # NOTE:添加上了在跟哪辆车和在哪个位置
