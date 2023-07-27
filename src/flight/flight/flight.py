@@ -3,7 +3,7 @@ FilePath: flight.py
 Author: Ballade-F     258300018@qq.com
 Date: 2023-07-12 08:52:04
 LastEditors: Please set LastEditors
-LastEditTime: 2023-07-27 09:50:07
+LastEditTime: 2023-07-27 10:40:24
 Copyright: 2023  All Rights Reserved.
 Descripttion: 
 '''
@@ -115,6 +115,7 @@ class FlightNode(Node):
         msg = FlightInfo()
         msg.rpy = self.rpy
         msg.pos = self.pos
+        msg.pos[2] = self.uav.GPSAlt
         msg.vel = self.vel
         msg.rsts = self.imgInfo
         msg.state = self.fsm.getState()
