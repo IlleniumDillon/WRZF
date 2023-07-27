@@ -13,7 +13,15 @@ def generate_launch_description():
             Node(
                 package='flight',
                 executable='yolo',
-                name='yoloNode'
+                name='YoloNode',
+                parameters=[
+                    {
+                        'imgsize_min':"1.0",
+                        'imgsize_max':"1.2",
+                        'conf_min':"1.3",
+                        'conf_max':"1.0"
+                    }
+                ]
             ),
             Node(
                 package='flight',

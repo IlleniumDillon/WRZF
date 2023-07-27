@@ -366,9 +366,12 @@ def main(args=None):
     Lon = float(input('start point Longitude:'))
     Lat = float(input('start point Latitude:'))
     Ele = float(input('start point Elevation:'))
+    print(Lon)
+    print(Lat)
+    print(Ele)
     node.startPos[0] = Lon
     node.startPos[1] = Lat
-    node.startPos[1] = Ele
+    node.startPos[2] = Ele
     while rclpy.ok():
         #print('haoye1\n')
         if node.state == "init_standby":

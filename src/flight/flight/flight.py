@@ -40,6 +40,12 @@ class FlightNode(Node):
         self.pos_error = 1
         self.pix_error = 10
 
+        self.declare_parameter('imgx_kp',"0.0")
+        self.declare_parameter('imgy_kp',"0.0")
+        self.declare_parameter('posx_kp',"0.0")
+        self.declare_parameter('posy_kp',"0.0")
+        self.declare_parameter('posz_kp',"0.0")
+
         #起飞阶段相关参数
         self.first_height = 10
         self.first_height_differ = 3
@@ -67,12 +73,12 @@ class FlightNode(Node):
 
 
         #控制
-        self.imgPID = [PID(10,0,0,100,50,0,0.1),
-                       PID(10,0,0,100,50,0,0.1)]
+        self.imgPID = [PID(1,0,0,100,5,-5,0.1),
+                       PID(1,0,0,100,5,-5,0.1)]
 
-        self.pointPID = [PID(1,0,0,100,50,0,0.1),
-                         PID(1,0,0,100,50,0,0.1),
-                         PID(1,0,0,100,50,0,0.1)]
+        self.pointPID = [PID(1,0,0,100,50,-50,0.1),
+                         PID(1,0,0,100,50,-50,0.1),
+                         PID(1,0,0,100,50,-50,0.1)]
 
 
         self.flight_pub_ = self.create_publisher(FlightInfo, 'flightInfo_%d'%(self.flightID), 10)
@@ -92,7 +98,7 @@ class FlightNode(Node):
 
     #TODO:获取飞控信息
     def getFlightInfo(self):
-        self.get_logger().info('%f'%self.uav.Lat)
+        #self.get_logger().info('%f'%self.uav.Lat)
         self.pos[0] = self.uav.Lng
         self.pos[1] = self.uav.Lat
         self.pos[2] = self.uav.Alt
@@ -121,18 +127,17 @@ class FlightNode(Node):
         if self.fsm.getLastState() == 'follow_number':
             for i in range(2):
                 self.pointPID[i].pidClear()  
-        if self.fsm.getLastState() == 'go_start':
+        if self.fsm.getLastState() == 'power_up':
             self.uav.Link.SendCmdOffboardEnter()
-
+            self.desPoint = request.pos
         response.flag = 1
         return response
         
 
     #接收地面站发送坐标
     def desPointSub_callback(self,msg):
-        self.desPoint[0] = msg.pos[0]
-        self.desPoint[1] = msg.pos[1] 
-        self.desPoint[2] = msg.pos[2] 
+        self.desPoint = msg.pos
+
 
         self.desDir = msg.indx
         
@@ -156,6 +161,10 @@ class FlightNode(Node):
         else :
             #异常
             pass
+        self.imgPID[0].p = float(self.get_parameter('imgx_kp').get_parameter_value().string_value)
+        self.imgPID[1].p = float(self.get_parameter('imgy_kp').get_parameter_value().string_value)
+        self.pointPID[2].p = float(self.get_parameter('posz_kp').get_parameter_value().string_value)
+
 
         self.desPixX = 0
         self.desPixY = 0
@@ -163,7 +172,7 @@ class FlightNode(Node):
         #follow the nearst car
         min_distance = 1
         car_id = -1
-        for car in self.imgInfo:
+        for car in range(len(self.imgInfo)):
             dis = self.imgInfo[car].x * self.imgInfo[car].x + self.imgInfo[car].y * self.imgInfo[car].y
             if dis <min_distance:
                 min_distance = dis
@@ -192,9 +201,14 @@ class FlightNode(Node):
     def send2Flight(self,outVel_Pos,posFlag):
         #TODO:注意坐标系转化,注意速度模式和位置模式
         if posFlag:
-            self.uav.Link.SendCmdOffboardSetPos(offboardCoord.WGS84, 1000, self.desPoint[0], self.desPoint[1], self.desPoint[2], 0)
+            self.uav.Link.SendCmdOffboardSetPos(offboardCoord.WGS84, 1000, self.desPoint[1], self.desPoint[0], self.desPoint[2], 0)
+            self.get_logger().info('[%f]'%self.desPoint[0])
+            self.get_logger().info('[%f]'%self.desPoint[1])
+            self.get_logger().info('[%f]'%self.desPoint[2])
         else :
-            self.uav.Link.SendCmdOffboardSetVel(offboardCoord.NEU, 1000, outVel_Pos[0], outVel_Pos[1],outVel_Pos[2], 0)
+            self.uav.Link.SendCmdOffboardSetVel(offboardCoord.FRU, 1000, outVel_Pos[0], outVel_Pos[1],outVel_Pos[2], 0)
+            self.get_logger().info('[%f]'%outVel_Pos[0])
+            self.get_logger().info('[%f]'%outVel_Pos[1])
 
 
     def flightUpdate(self):

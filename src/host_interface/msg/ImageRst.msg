@@ -1,4 +1,5 @@
 int8 num
+float32 conf
 float32 x
 float32 y
 float32 size

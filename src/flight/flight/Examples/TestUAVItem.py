@@ -14,7 +14,7 @@ from UAVItem import *
 from LinkDef import *
 #------------------------------------------------------------------------------
 
-uav = uavitem('COM35')
+uav = uavitem('/dev/ttyTHS0')
 print (f'IsConnected={uav.IsConnected()}')
 
 uav.Link.DebugEn = True
